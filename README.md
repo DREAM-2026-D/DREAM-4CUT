@@ -26,24 +26,66 @@ Vercel에 올리면 진짜 인증서가 붙은 https 주소가 생기므로, 아
 
 ## 배포 절차
 
-1. https://vercel.com 가입 (GitHub 계정으로 로그인 가능)
-2. 이 `deploy` 폴더를 새 저장소에 올리거나, 폴더에서 아래를 실행
+이 PC에는 Node/npm이 없으므로 `npx vercel` 은 쓰지 않습니다.
+GitHub에 올린 뒤 Vercel 웹에서 가져오는 방식이라 **아무것도 설치할 필요가 없습니다.**
 
-   ```bash
-   npx vercel
-   ```
+이 폴더는 이미 git 저장소로 준비되어 있고 첫 커밋도 되어 있습니다.
 
-3. Vercel 대시보드 → 프로젝트 → **Storage** → **Create** → **Blob**
-   - 스토어를 만들고 **Connect to Project** 로 이 프로젝트에 연결
-   - 연결하면 필요한 환경변수가 자동으로 들어갑니다
-4. 다시 배포
+### 1단계 — GitHub에 새 저장소 만들기
 
-   ```bash
-   npx vercel --prod
-   ```
+https://github.com/new 에서 만듭니다.
 
-5. 나온 https 주소를 아이패드 Safari에서 열기
-   - 홈 화면에 추가하면 주소창 없이 전체화면으로 쓸 수 있습니다
+- Repository name: `jnu-photobooth` (원하는 이름)
+- **Public** 선택 (Vercel 무료 플랜은 공개 저장소에서 편합니다)
+- README·.gitignore·license는 **체크하지 않기** (이미 있습니다)
+
+### 2단계 — 올리기
+
+`deploy` 폴더에서 (주소의 `JMIN-22` 와 저장소 이름은 본인 것으로):
+
+```bash
+git remote add origin https://github.com/JMIN-22/jnu-photobooth.git
+git branch -M main
+git push -u origin main
+```
+
+로그인 창이 뜨면 GitHub 계정으로 로그인합니다.
+
+### 3단계 — Vercel에서 가져오기
+
+1. https://vercel.com 에서 **Continue with GitHub** 으로 가입/로그인
+2. **Add New… → Project**
+3. 방금 만든 저장소 옆 **Import**
+4. 설정은 건드리지 말고 **Deploy** (Framework Preset은 Other 그대로)
+
+1~2분 뒤 `https://jnu-photobooth.vercel.app` 같은 주소가 나옵니다.
+
+### 4단계 — 사진 저장소 연결 (이걸 빼면 QR이 안 됩니다)
+
+1. Vercel 대시보드 → 방금 만든 프로젝트 → **Storage** 탭
+2. **Create Database** → **Blob** 선택 → 이름 정하고 **Create**
+3. 만들어진 스토어에서 **Connect to Project** → 이 프로젝트 선택
+4. **Deployments** 탭 → 맨 위 배포의 **⋯ → Redeploy**
+
+연결하면 필요한 환경변수가 자동으로 들어가므로 직접 입력할 것은 없습니다.
+4번의 재배포를 해야 환경변수가 적용됩니다.
+
+### 5단계 — 아이패드에서 열기
+
+나온 https 주소를 아이패드 Safari에서 엽니다.
+공유 버튼 → **홈 화면에 추가** 하면 주소창 없이 전체화면으로 쓸 수 있습니다.
+
+### 나중에 수정한 내용을 반영하려면
+
+`deploy` 폴더에서:
+
+```bash
+git add -A
+git commit -m "수정 내용"
+git push
+```
+
+푸시하면 Vercel이 자동으로 다시 배포합니다.
 
 ## 확인할 것
 
