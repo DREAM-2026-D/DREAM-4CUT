@@ -608,7 +608,8 @@
         <button class="chip on" id="chipSound">소리</button>
       </div>
     </div>
-    <div>
+    <!-- 노트북 부스에서만 필요한 설정. 배포본에서는 자동으로 숨긴다. -->
+    <div id="boothSetup" hidden>
       <div class="optlabel">부스 준비 (QR)</div>
       <div class="optrow">
         <button class="chip" id="chipBooth">QR 준비 (폴더 연결)</button>
@@ -616,6 +617,12 @@
       <p style="margin:-8px 0 18px;font-size:12px;color:var(--dim);line-height:1.7">
         누르면 폴더 선택창이 뜹니다. 프로젝트 폴더 안의 <b>photos</b> 를 골라 주세요.<br>
         한 번만 하면 다음부터는 사진 아래에 QR이 자동으로 나옵니다.
+      </p>
+    </div>
+    <div id="boothReady" hidden>
+      <div class="optlabel">QR</div>
+      <p style="margin:0 0 18px;font-size:12.5px;color:var(--dim);line-height:1.7">
+        따로 준비할 것이 없습니다. 사진이 완성되면 아래에 QR이 자동으로 나옵니다.
       </p>
     </div>
     <button class="btn" id="btnSheetClose" style="width:100%;margin-top:8px;">확인</button>
@@ -1559,8 +1566,12 @@ async function showQrForResult(){
 
     const url = await uploadPhoto(blob);
     if(!url){
-      // 로컬 부스인데 준비가 안 된 경우에만 안내한다
-      if(location.protocol === 'http:' || location.protocol === 'https:'){
+      if(location.protocol !== 'http:' && location.protocol !== 'https:') return;
+      if(uploadMode === 'api'){
+        // 배포본: 업로드 API 는 있는데 저장에 실패한 경우
+        qrNote('사진 저장소가 연결되지 않았습니다.<br>' +
+               'Vercel 프로젝트에서 <b>Storage → Blob</b> 을 만들고 연결한 뒤 재배포해 주세요.');
+      }else{
         qrNote(photoDir
           ? 'QR을 쓰려면 <b>인생네컷 실행.cmd</b> 로 열고 관리자 권한을 허용해 주세요'
           : 'QR을 쓰려면 ⚙ 설정에서 <b>QR 준비</b> 를 한 번 눌러 주세요');
@@ -1711,6 +1722,20 @@ toggleChip('#chipMirror', 'mirror', applyMirror);
 toggleChip('#chipSound',  'sound');
 
 $("#chipBooth").addEventListener("click", connectPhotoDir);
+
+// 배포본에는 업로드 API 가 있으므로 폴더 연결이 필요 없다.
+// GET 으로 찔러 보고 405(메서드 불가)가 오면 함수가 살아 있는 것.
+(async function detectUploadApi(){
+  let hasApi = false;
+  try{
+    const r = await fetch('api/upload', { method: 'GET' });
+    hasApi = (r.status !== 404);
+  }catch(e){ hasApi = false; }
+
+  if(hasApi) uploadMode = 'api';
+  $('#boothSetup').hidden = hasApi;
+  $('#boothReady').hidden = !hasApi;
+})();
 
 let capTimer = null;
 $('#capInput').addEventListener('input', e => {
