@@ -98,10 +98,25 @@ echo ============================================
 echo    올리지 못했습니다
 echo ============================================
 echo.
-echo   저장소 주소가 맞는지, 깃허브 로그인이 되었는지 확인해 주세요.
+echo   위에 표시된 메시지를 확인해 주세요. 흔한 경우는 두 가지입니다.
 echo.
-echo   주소를 잘못 넣었다면 이 창에 아래를 입력해 지우고 다시 실행하세요.
-echo      git remote remove origin
+echo   [1] Permission to ... denied to ... 라고 나온 경우
+echo       저장소 주인 계정과 이 PC 에 로그인된 계정이 다릅니다.
+echo       해결 방법 중 하나를 고르세요.
+echo.
+echo       가. 저장소 주인 계정으로 깃허브에 로그인해서
+echo           저장소 Settings - Collaborators 에서 이 PC 계정을 추가
+echo.
+echo       나. 이 PC 의 깃허브 로그인을 저장소 주인 계정으로 바꾸기
+echo           아래를 입력해 저장된 로그인을 지운 뒤 다시 실행하면
+echo           로그인 창이 새로 뜹니다.
+echo             cmdkey /delete:LegacyGeneric:target=git:https://github.com
+echo.
+echo       다. 이 PC 에 로그인된 계정으로 저장소를 새로 만들어 사용
+echo.
+echo   [2] Repository not found 라고 나온 경우
+echo       주소가 틀렸습니다. 아래로 지우고 다시 실행하세요.
+echo         git remote remove origin
 echo.
 goto end
 
