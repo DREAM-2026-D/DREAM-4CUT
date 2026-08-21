@@ -305,6 +305,36 @@
   .fc-name{font-size:13.5px;font-weight:800;margin-top:4px;}
   .fc-sub{font-size:11.5px;color:var(--dim);}
 
+  /* 단과대 선택 */
+  .college-label{
+    margin:22px auto 12px;max-width:680px;text-align:center;
+    font-size:12.5px;font-weight:700;color:var(--dim);letter-spacing:.06em;
+  }
+  .college-label span{color:var(--mint);font-weight:900;}
+  .college-row{
+    display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+    max-width:680px;margin:0 auto;
+  }
+  .col-btn{
+    width:62px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    background:none;padding:0;
+  }
+  .col-dot{
+    width:46px;height:46px;border-radius:50%;
+    border:2px solid var(--line);background:#141414;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:var(--dim);
+    transition:border-color .12s,background .12s,color .12s,transform .1s;
+  }
+  .col-btn:active .col-dot{transform:scale(.92);}
+  .col-btn.on .col-dot{
+    border-color:var(--mint);background:rgba(18,227,166,.16);color:var(--mint);
+  }
+  .col-name{font-size:11px;color:var(--dim);line-height:1.2;text-align:center;}
+  .col-btn.on .col-name{color:#fff;font-weight:800;}
+  /* 아직 프레임 파일이 없는 단과대 */
+  .col-btn.missing .col-dot{opacity:.4;border-style:dashed;}
+
   /* ---------- 4. 사진 고르기 ---------- */
   .head{padding:6px 20px 14px;flex:0 0 auto;}
   .head h2{margin:0 0 6px;font-size:22px;font-weight:900;}
@@ -508,17 +538,20 @@
   </div>
   <div class="framewrap">
     <div class="frame-grid">
-      <button class="frame-card" data-frame="jnu4">
-        <img data-src="assets/frames/jnu-4cut-fit.png" alt="통합체전 4컷">
-        <span class="fc-name">통합체전 4컷</span>
+      <button class="frame-card" data-type="4cut">
+        <img id="card4img" alt="4컷 프레임">
+        <span class="fc-name">4컷</span>
         <span class="fc-sub">세로 4장</span>
       </button>
-      <button class="frame-card" data-frame="jnu3">
-        <img data-src="assets/frames/jnu-3cut-fit.png" alt="통합체전 3컷">
-        <span class="fc-name">통합체전 3컷</span>
+      <button class="frame-card" data-type="3cut">
+        <img id="card3img" alt="3컷 프레임">
+        <span class="fc-name">3컷</span>
         <span class="fc-sub">가로 3장</span>
       </button>
     </div>
+
+    <div class="college-label">단과대학 <span id="collegeNow"></span></div>
+    <div class="college-row" id="collegeRow"></div>
   </div>
 </section>
 
@@ -656,7 +689,8 @@ const state = {
   mirror: true,
   sound: true,
   facing: 'user',
-  frame: 'jnu4',      // FRAMES 키, 또는 'custom' = 아래 theme/layout 조합
+  college: "common",  // 선택된 단과대
+  frame: "common-4cut",   // FRAMES 키
   theme: 'jnu',
   layout: 'strip',
   caption: '',
@@ -946,32 +980,69 @@ function updatePickUI(){
 /* ═══════════ 완성 프레임(PNG) ═══════════ */
 // tools/prep-frames.ps1 이 원본 PNG의 흰 여백을 잘라내고 슬롯 좌표를 뽑아준다.
 // 좌표는 -trim.png 의 픽셀 기준이며, 프레임을 새로 만들면 그 스크립트를 다시 돌리면 된다.
-// 두 프레임은 원래 서로 다른 비율이었다(0.538 / 0.424).
-// 완성본 크기가 프레임마다 달라지지 않도록 tools\match-frames.ps1 로
-// 같은 캔버스(800x1666)에 맞춰 다시 만들었다. 슬롯 좌표도 함께 변환된 값이다.
-const FRAMES = {
-  jnu4: {
-    label: '통합체전 4컷',
-    src: 'assets/frames/jnu-4cut-fit.png',
-    W: 800, H: 1666,
-    slots: [
-      { x: 87,  y: 407, w: 303, h: 429, r: 9 },
-      { x: 410, y: 407, w: 303, h: 429, r: 9 },
-      { x: 87,  y: 853, w: 303, h: 464, r: 9 },
-      { x: 410, y: 853, w: 303, h: 464, r: 9 }
-    ]
-  },
-  jnu3: {
-    label: '통합체전 3컷',
-    src: 'assets/frames/jnu-3cut-fit.png',
-    W: 800, H: 1666,
-    slots: [
-      { x: 118, y: 277,  w: 561, h: 355, r: 8 },
-      { x: 118, y: 651,  w: 561, h: 358, r: 8 },
-      { x: 118, y: 1026, w: 561, h: 358, r: 8 }
-    ]
-  }
+/* ═══════════ 프레임 ═══════════
+   단과대마다 4컷·3컷 두 장씩. 파일 이름 규칙은 아래와 같다.
+       assets/frames/<id>-4cut.jpg
+       assets/frames/<id>-3cut.jpg
+   새 단과대를 넣으려면 COLLEGES 에 한 줄 추가하고 파일 두 개를 넣으면 된다.
+   파일이 아직 없으면 공통(common) 프레임으로 자동 대체된다.
+
+   ※ 34장을 HTML 에 데이터로 심으면 8MB 가 되어 페이지가 못 뜬다.
+     그래서 파일로 불러온다. https 로 서비스되므로 캔버스 잠김 문제는 없다. */
+
+const FRAME_W = 800, FRAME_H = 1666;
+
+// 모든 프레임이 같은 자리에 사진 칸을 두는 것을 전제로 한다.
+// 어느 프레임만 칸 위치가 다르면 SLOT_OVERRIDE 에 그 프레임만 적어준다.
+const SLOTS = {
+  '4cut': [
+    { x: 87,  y: 407, w: 303, h: 429, r: 9 },
+    { x: 410, y: 407, w: 303, h: 429, r: 9 },
+    { x: 87,  y: 853, w: 303, h: 464, r: 9 },
+    { x: 410, y: 853, w: 303, h: 464, r: 9 }
+  ],
+  '3cut': [
+    { x: 118, y: 277,  w: 561, h: 355, r: 8 },
+    { x: 118, y: 651,  w: 561, h: 358, r: 8 },
+    { x: 118, y: 1026, w: 561, h: 358, r: 8 }
+  ]
 };
+const SLOT_OVERRIDE = {};   // 예) 'inmun-4cut': [ {x,y,w,h,r}, ... ]
+
+// ▼ 단과대 목록. name 은 버튼 아래 글자, id 는 파일 이름에 쓰인다.
+//   순서를 바꾸면 버튼 순서도 바뀐다.
+const COLLEGES = [
+  { id: 'common',  name: '공통' },
+  { id: 'inmun',   name: '인문대' },
+  { id: 'sahoe',   name: '사회대' },
+  { id: 'jayeon',  name: '자연대' },
+  { id: 'gyeongsang', name: '경상대' },
+  { id: 'gongkwa', name: '공과대' },
+  { id: 'sabeom',  name: '사범대' },
+  { id: 'haeyang', name: '해양대' },
+  { id: 'saengmyeong', name: '생명대' },
+  { id: 'uikwa',   name: '의과대' },
+  { id: 'ganho',   name: '간호대' },
+  { id: 'yakhak',  name: '약학대' },
+  { id: 'suui',    name: '수의대' },
+  { id: 'yedi',    name: '예디대' },
+  { id: 'gyoyuk',  name: '교육대' },
+  { id: 'jayu',    name: '자유전공' },
+  { id: 'daehak',  name: '대학원' }
+];
+
+const FRAMES = {};
+COLLEGES.forEach(c => {
+  ['4cut', '3cut'].forEach(t => {
+    const key = c.id + '-' + t;
+    FRAMES[key] = {
+      label: c.name + ' ' + (t === '4cut' ? '4컷' : '3컷'),
+      src: 'assets/frames/' + key + '.jpg',
+      W: FRAME_W, H: FRAME_H,
+      slots: SLOT_OVERRIDE[key] || SLOTS[t]
+    };
+  });
+});
 
 // 고른 프레임의 촬영 비율 — 첫 슬롯을 따른다.
 // (4컷은 세로 0.71, 3컷은 가로 1.58. 4:3으로 찍어두면 크게 잘려나간다)
@@ -1011,7 +1082,18 @@ function frameSrc(key){
 let framePngCache = {};
 async function loadFramePng(key){
   if(framePngCache[key]) return framePngCache[key];
-  const im = await loadImg(frameSrc(key));
+
+  let im;
+  try{
+    im = await loadImg(frameSrc(key));
+  }catch(e){
+    // 그 단과대 프레임 파일이 아직 없으면 공통 프레임으로 대신한다.
+    // 슬롯 위치가 같으므로 사진은 제자리에 들어간다.
+    const type = key.split('-')[1] || '4cut';
+    frameMissing[key] = true;
+    im = await loadImg(frameSrc('common-' + type));
+  }
+
   framePngCache[key] = im;
   return im;
 }
@@ -1364,16 +1446,65 @@ async function renderResult(){
 /* ═══════════ 프레임 선택 ═══════════ */
 function setFrame(v){
   state.frame = v;
-
-  [...document.querySelectorAll('#frameRow .chip')].forEach(ch => {
-    ch.classList.toggle('on', ch.dataset.frame === v);
-  });
-
+  const type = v.split('-')[1];
   [...document.querySelectorAll('.frame-card')].forEach(card => {
-    card.classList.toggle('on', card.dataset.frame === v);
+    card.classList.toggle('on', card.dataset.type === type);
+  });
+}
+
+/* ───── 단과대 선택 ───── */
+
+// 파일이 아직 없는 단과대는 공통 프레임으로 대신한다.
+// (프레임을 하나씩 만들어 넣는 동안에도 부스가 돌아가야 한다)
+const frameMissing = {};
+
+function collegeFrameSrc(id, type){
+  const key = id + '-' + type;
+  if(frameMissing[key]) return frameSrc('common-' + type);
+  return frameSrc(key);
+}
+
+function setCollege(id){
+  state.college = id;
+  $('#collegeNow').textContent =
+    (COLLEGES.find(c => c.id === id) || {}).name || '';
+
+  [...document.querySelectorAll('.col-btn')].forEach(b => {
+    b.classList.toggle('on', b.dataset.college === id);
   });
 
-  document.body.classList.toggle('is-custom', !FRAMES[v]);
+  // 카드 미리보기 갱신. 파일이 없으면 공통으로 대체하고 표시해 둔다.
+  [['4cut', '#card4img'], ['3cut', '#card3img']].forEach(([type, sel]) => {
+    const im = $(sel);
+    const key = id + '-' + type;
+    im.onerror = () => {
+      if(frameMissing[key]) return;      // 이미 대체한 뒤면 무한루프 방지
+      frameMissing[key] = true;
+      markMissing(id);
+      im.src = frameSrc('common-' + type);
+    };
+    im.src = collegeFrameSrc(id, type);
+  });
+}
+
+function markMissing(id){
+  const b = document.querySelector('.col-btn[data-college="' + id + '"]');
+  if(b) b.classList.add('missing');
+}
+
+function buildCollegeRow(){
+  const row = $('#collegeRow');
+  row.innerHTML = '';
+  COLLEGES.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'col-btn';
+    b.dataset.college = c.id;
+    // 동그라미 안에는 이름 앞 두 글자만 (공간이 좁다)
+    b.innerHTML = '<span class="col-dot">' + c.name.slice(0, 2) + '</span>' +
+                  '<span class="col-name">' + c.name + '</span>';
+    b.addEventListener('click', () => setCollege(c.id));
+    row.appendChild(b);
+  });
 }
 
 /* ═══════════ 프레임 6종 비교 ═══════════ */
@@ -1685,11 +1816,12 @@ $('#startScreen').addEventListener('click', e => {
 $('#btnShutter').addEventListener('click', shootNow);
 $('#btnUndo').addEventListener('click', undoShot);
 
-// 프레임 카드 → 고른 뒤 사진 고르기로
-$('.frame-grid').addEventListener('click', e => {
-  const card = e.target.closest('[data-frame]');
+// 프레임 카드 → 고른 단과대 + 종류로 확정하고 사진 고르기로
+$(".frame-grid").addEventListener("click", e => {
+  const card = e.target.closest("[data-type]");
   if(!card) return;
-  setFrame(card.dataset.frame);
+  const key = state.college + "-" + card.dataset.type;
+  setFrame(FRAMES[key] ? key : "common-" + card.dataset.type);
   goPick();
 });
 
@@ -1820,12 +1952,8 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-// 프레임 고르기 카드도 심어둔 데이터로 (file:// 에서도 뜨고, 로딩도 빠르다)
-[...document.querySelectorAll(".frame-card img")].forEach(im => {
-  const key = im.closest("[data-frame]").dataset.frame;
-  const packed = window.FRAME_DATA && window.FRAME_DATA[key];
-  im.src = packed || im.dataset.src;   // 배포본에는 PNG 원본을 넣지 않는다
-});
+buildCollegeRow();
+setCollege(state.college);
 
 // 대기화면 그림이 실제로 떴을 때만 바꿔 끼운다 (없으면 CSS 대기화면 유지)
 (function(){
