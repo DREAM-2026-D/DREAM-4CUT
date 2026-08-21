@@ -509,19 +509,14 @@
   <div class="framewrap">
     <div class="frame-grid">
       <button class="frame-card" data-frame="jnu4">
-        <img data-src="assets/frames/jnu-4cut-trim.png" alt="통합체전 4컷">
+        <img data-src="assets/frames/jnu-4cut-fit.png" alt="통합체전 4컷">
         <span class="fc-name">통합체전 4컷</span>
         <span class="fc-sub">세로 4장</span>
       </button>
       <button class="frame-card" data-frame="jnu3">
-        <img data-src="assets/frames/jnu-3cut-trim.png" alt="통합체전 3컷">
+        <img data-src="assets/frames/jnu-3cut-fit.png" alt="통합체전 3컷">
         <span class="fc-name">통합체전 3컷</span>
         <span class="fc-sub">가로 3장</span>
-      </button>
-      <button class="frame-card" data-frame="custom">
-        <span class="fc-swatch"></span>
-        <span class="fc-name">직접 꾸미기</span>
-        <span class="fc-sub">색·배치 고르기</span>
       </button>
     </div>
   </div>
@@ -572,32 +567,7 @@
         <div class="optrow" id="frameRow">
           <button class="chip on" data-frame="jnu4">통합체전 4컷</button>
           <button class="chip" data-frame="jnu3">통합체전 3컷</button>
-          <button class="chip" data-frame="custom">직접 꾸미기</button>
         </div>
-      </div>
-      <div class="custom-only">
-        <div class="optlabel">프레임 디자인</div>
-        <div class="optrow" id="themeRow">
-          <button class="chip swatch on" data-theme="jnu"><span class="sw" style="background:linear-gradient(135deg,#19EDAD,#0A4A41 55%,#081310)"></span>통합체전</button>
-          <button class="chip swatch" data-theme="glow"><span class="sw" style="background:linear-gradient(135deg,#0FE0A4,#0B7A69 55%,#062521)"></span>민트 글로우</button>
-          <button class="chip swatch" data-theme="light"><span class="sw" style="background:linear-gradient(135deg,#12E3A6,#F7FBF9 60%)"></span>화이트 카드</button>
-          <button class="chip swatch" data-theme="neon"><span class="sw" style="background:radial-gradient(circle at 50% 100%,#12E3A6,#05100D 70%)"></span>네온 라인</button>
-          <button class="chip swatch" data-theme="black"><span class="sw" style="background:#000"></span>블랙</button>
-          <button class="chip swatch" data-theme="white"><span class="sw" style="background:#fff"></span>화이트</button>
-        </div>
-        <button class="link-btn" id="btnCompare" style="padding-left:0">6가지 한눈에 비교하기</button>
-      </div>
-      <div class="custom-only">
-        <div class="optlabel">배치</div>
-        <div class="optrow" id="layoutRow">
-          <button class="chip on" data-layout="strip">세로 1×4</button>
-          <button class="chip" data-layout="grid">정사각 2×2</button>
-          <button class="chip" data-layout="double">2줄 인쇄용</button>
-        </div>
-      </div>
-      <div class="custom-only">
-        <div class="optlabel">하단 문구</div>
-        <input id="capInput" type="text" maxlength="24" placeholder="비워두면 '통합체전'으로 들어갑니다">
       </div>
     </div>
     <p class="saved-hint">
@@ -610,15 +580,6 @@
     <button class="btn" id="btnSave">사진 저장</button>
   </div>
 </section>
-
-<!-- ══════════ 프레임 비교 시트 ══════════ -->
-<div class="sheet" id="cmpSheet">
-  <div class="sheet-inner">
-    <h3>프레임 디자인 비교</h3>
-    <div class="cmp-grid" id="cmpGrid"></div>
-    <button class="btn" id="btnCmpClose" style="width:100%;margin-top:18px;">닫기</button>
-  </div>
-</div>
 
 <!-- ══════════ 설정 시트 ══════════ -->
 <div class="sheet" id="sheet">
@@ -985,26 +946,29 @@ function updatePickUI(){
 /* ═══════════ 완성 프레임(PNG) ═══════════ */
 // tools/prep-frames.ps1 이 원본 PNG의 흰 여백을 잘라내고 슬롯 좌표를 뽑아준다.
 // 좌표는 -trim.png 의 픽셀 기준이며, 프레임을 새로 만들면 그 스크립트를 다시 돌리면 된다.
+// 두 프레임은 원래 서로 다른 비율이었다(0.538 / 0.424).
+// 완성본 크기가 프레임마다 달라지지 않도록 tools\match-frames.ps1 로
+// 같은 캔버스(800x1666)에 맞춰 다시 만들었다. 슬롯 좌표도 함께 변환된 값이다.
 const FRAMES = {
   jnu4: {
     label: '통합체전 4컷',
-    src: 'assets/frames/jnu-4cut-trim.png',
-    W: 826, H: 1536,
+    src: 'assets/frames/jnu-4cut-fit.png',
+    W: 800, H: 1666,
     slots: [
-      { x: 90,  y: 328, w: 313, h: 443, r: 9 },
-      { x: 423, y: 328, w: 313, h: 443, r: 9 },
-      { x: 90,  y: 789, w: 313, h: 479, r: 9 },
-      { x: 423, y: 789, w: 313, h: 479, r: 9 }
+      { x: 87,  y: 407, w: 303, h: 429, r: 9 },
+      { x: 410, y: 407, w: 303, h: 429, r: 9 },
+      { x: 87,  y: 853, w: 303, h: 464, r: 9 },
+      { x: 410, y: 853, w: 303, h: 464, r: 9 }
     ]
   },
   jnu3: {
     label: '통합체전 3컷',
-    src: 'assets/frames/jnu-3cut-trim.png',
-    W: 703, H: 1657,
+    src: 'assets/frames/jnu-3cut-fit.png',
+    W: 800, H: 1666,
     slots: [
-      { x: 72, y: 276,  w: 558, h: 353, r: 8 },
-      { x: 72, y: 647,  w: 558, h: 356, r: 8 },
-      { x: 72, y: 1020, w: 558, h: 356, r: 8 }
+      { x: 118, y: 277,  w: 561, h: 355, r: 8 },
+      { x: 118, y: 651,  w: 561, h: 358, r: 8 },
+      { x: 118, y: 1026, w: 561, h: 358, r: 8 }
     ]
   }
 };
@@ -1774,12 +1738,6 @@ $('#frameRow').addEventListener('click', async e => {
   await renderResult();
 });
 
-chipGroup('#themeRow',  'theme',  async v => { state.theme = v;  await renderResult(); });
-
-$('#btnCompare').addEventListener('click', openCompare);
-$('#btnCmpClose').addEventListener('click', () => $('#cmpSheet').classList.remove('on'));
-$('#cmpSheet').addEventListener('click', e => { if(e.target === $('#cmpSheet')) $('#cmpSheet').classList.remove('on'); });
-chipGroup('#layoutRow', 'layout', async v => { state.layout = v; await renderResult(); });
 chipGroup("#filterRow", "filter", v => { state.filter = v; video.style.filter = FILTERS[v]; });
 
 toggleChip('#chipMirror', 'mirror', applyMirror);
@@ -1801,12 +1759,6 @@ $("#chipBooth").addEventListener("click", connectPhotoDir);
   $('#boothReady').hidden = !hasApi;
 })();
 
-let capTimer = null;
-$('#capInput').addEventListener('input', e => {
-  state.caption = e.target.value;
-  clearTimeout(capTimer);
-  capTimer = setTimeout(renderResult, 350);
-});
 
 // 설정 시트
 function openSheet(){ sheet.classList.add('on'); }
