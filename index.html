@@ -286,10 +286,13 @@
 
   /* ---------- 3. 프레임 고르기 ---------- */
   .framewrap{flex:1 1 auto;overflow-y:auto;padding:0 16px 20px;-webkit-overflow-scrolling:touch;}
+  /* 프레임 카드 2장을 가운데에, 사이를 넉넉히 띄운다 */
   .frame-grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
-    max-width:680px;margin:0 auto;align-items:start;
+    display:flex;justify-content:center;align-items:flex-start;
+    gap:clamp(24px,6vw,72px);
+    max-width:680px;margin:0 auto;
   }
+  .frame-card{flex:0 1 260px;}
   .frame-card{
     display:flex;flex-direction:column;align-items:center;gap:6px;
     padding:12px;border-radius:14px;border:2.5px solid var(--line);background:#111;
@@ -311,16 +314,18 @@
     font-size:12.5px;font-weight:700;color:var(--dim);letter-spacing:.06em;
   }
   .college-label span{color:var(--mint);font-weight:900;}
+  /* 16개를 8개씩 두 줄로 */
   .college-row{
-    display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
-    max-width:680px;margin:0 auto;
+    display:grid;grid-template-columns:repeat(8,1fr);
+    gap:14px 8px;justify-items:center;
+    max-width:600px;margin:0 auto;
   }
   .col-btn{
-    width:62px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    width:100%;display:flex;flex-direction:column;align-items:center;gap:5px;
     background:none;padding:0;
   }
   .col-dot{
-    width:46px;height:46px;border-radius:50%;
+    width:46px;height:46px;border-radius:50%;overflow:hidden;
     border:2px solid var(--line);background:#141414;
     display:flex;align-items:center;justify-content:center;
     font-size:11px;font-weight:800;color:var(--dim);
@@ -330,6 +335,13 @@
   .col-btn.on .col-dot{
     border-color:var(--mint);background:rgba(18,227,166,.16);color:var(--mint);
   }
+
+  /* 로고가 있으면 흰 바탕에 로고, 없으면 글자 */
+  .col-logo{width:100%;height:100%;object-fit:contain;padding:5px;display:none;}
+  .col-dot.has-logo{background:#fff;}
+  .col-dot.has-logo .col-logo{display:block;}
+  .col-dot.has-logo .col-abbr{display:none;}
+  .col-btn.on .col-dot.has-logo{background:#fff;box-shadow:0 0 0 3px rgba(18,227,166,.35);}
   .col-name{font-size:11px;color:var(--dim);line-height:1.2;text-align:center;}
   .col-btn.on .col-name{color:#fff;font-weight:800;}
   /* 아직 프레임 파일이 없는 단과대 */
@@ -1015,20 +1027,20 @@ const SLOT_OVERRIDE = {};   // 예) 'inmun-4cut': [ {x,y,w,h,r}, ... ]
 const COLLEGES = [
   { id: 'chonghak',    name: '총학생회' },
   { id: 'ganho',       name: '간호대' },
-  { id: 'gyeongsang',  name: '경상대' },
-  { id: 'gongkwa',     name: '공과대' },
+  { id: 'gyeongsang',  name: '경대' },
+  { id: 'gongkwa',     name: '공대' },
   { id: 'gyodae',      name: '교대' },
   { id: 'sabeom',      name: '사범대' },
   { id: 'sahoe',       name: '사회대' },
-  { id: 'saengmyeong', name: '생명대' },
+  { id: 'saengmyeong', name: '생대' },
   { id: 'suui',        name: '수의대' },
   { id: 'yakdae',      name: '약대' },
   { id: 'yedi',        name: '예디대' },
   { id: 'uikwa',       name: '의과대' },
-  { id: 'inmun',       name: '인문대' },
-  { id: 'jayeon',      name: '자연대' },
+  { id: 'inmun',       name: '인대' },
+  { id: 'jayeon',      name: '자대' },
   { id: 'jayu',        name: '자유전공' },
-  { id: 'haeyang',     name: '해양대' }
+  { id: 'haeyang',     name: '해대' }
 ];
 
 // 아직 프레임 파일이 없는 단과대는 이 프레임으로 대신한다
@@ -1505,9 +1517,24 @@ function buildCollegeRow(){
     const b = document.createElement('button');
     b.className = 'col-btn';
     b.dataset.college = c.id;
-    // 동그라미 안에는 이름 앞 두 글자만 (공간이 좁다)
-    b.innerHTML = '<span class="col-dot">' + c.name.slice(0, 2) + '</span>' +
-                  '<span class="col-name">' + c.name + '</span>';
+
+    // 동그라미 안에 단과대 로고. 파일이 없으면 이름 앞 두 글자를 대신 보여준다.
+    //   assets/logos/<id>.png
+    b.innerHTML =
+      '<span class="col-dot">' +
+        '<img class="col-logo" alt="">' +
+        '<span class="col-abbr">' + c.name.slice(0, 2) + '</span>' +
+      '</span>' +
+      '<span class="col-name">' + c.name + '</span>';
+
+    const dot = b.querySelector('.col-dot');
+    const logo = b.querySelector('.col-logo');
+    logo.addEventListener('load', () => {
+      if(logo.naturalWidth) dot.classList.add('has-logo');
+    }, { once:true });
+    logo.addEventListener('error', () => {}, { once:true });   // 없으면 글자 유지
+    logo.src = 'assets/logos/' + c.id + '.png';
+
     b.addEventListener('click', () => setCollege(c.id));
     row.appendChild(b);
   });
