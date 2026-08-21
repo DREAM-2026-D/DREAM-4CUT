@@ -390,7 +390,8 @@
   .qr-title{margin:0 0 6px;font-size:15px;font-weight:900;color:var(--mint);}
   .qr-status{max-width:520px;margin:14px auto 0;text-align:center;font-size:12.5px;color:var(--dim);line-height:1.7;}
   .qr-box{background:#fff;border-radius:12px;padding:10px;display:inline-block;}
-  #qrCanvas{display:block;width:min(44vw,168px);height:auto;image-rendering:pixelated;}
+  /* 모듈 하나가 최소 6px 은 되어야 휴대폰이 잘 읽는다 */
+  #qrCanvas{display:block;width:min(64vw,300px);height:auto;image-rendering:pixelated;}
   .qr-steps{margin:0 0 10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.8);}
   .qr-url{
     font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;

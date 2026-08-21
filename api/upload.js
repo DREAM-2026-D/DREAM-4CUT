@@ -1,11 +1,24 @@
 import { put, list, del } from '@vercel/blob';
 
 // 초상권 때문에 사진은 찍은 사람만 가져갈 수 있어야 하고, 오래 남으면 안 된다.
-//  - addRandomSuffix 로 URL 을 추측할 수 없게 만든다 (링크를 받은 사람만 접근)
+//  - 주소에 무작위 id 를 써서 추측할 수 없게 한다 (링크를 받은 사람만 접근)
 //  - 목록을 노출하는 엔드포인트를 두지 않는다
 //  - 업로드가 있을 때마다 만료된 사진을 지운다 (Blob 에는 TTL 이 없다)
 const KEEP_MINUTES = 30;
-const MAX_BYTES = 12 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024;   // Vercel 함수 본문 한도가 4.5MB
+
+// QR 이 촘촘하면 카메라가 못 읽는다. Blob 원본 주소는 100 글자라
+// 짧은 /p/<id> 주소를 만들어 그쪽을 QR 에 담는다.
+const ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';   // 헷갈리는 l,o,0,1 제외
+const ID_LEN = 8;
+
+function makeId() {
+  let s = '';
+  for (let i = 0; i < ID_LEN; i++) {
+    s += ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)];
+  }
+  return s;
+}
 
 async function sweepExpired() {
   const cutoff = Date.now() - KEEP_MINUTES * 60 * 1000;
@@ -51,15 +64,24 @@ export default async function handler(req, res) {
     let swept = 0;
     try { swept = await sweepExpired(); } catch (e) { console.warn('sweep', e); }
 
-    const blob = await put('cut/photo.jpg', body, {
-      access: 'public',          // URL 을 아는 사람만 접근 (아래 addRandomSuffix)
-      addRandomSuffix: true,     // 추측 불가능한 경로
+    const id = makeId();
+    await put(`cut/${id}.jpg`, body, {
+      access: 'public',
+      addRandomSuffix: false,      // 짧은 주소를 쓰려면 경로를 우리가 정해야 한다
+      allowOverwrite: true,
       contentType: 'image/jpeg',
       cacheControlMaxAge: KEEP_MINUTES * 60
     });
 
+    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ url: blob.url, keepMinutes: KEEP_MINUTES, swept });
+    return res.status(200).json({
+      url: `${proto}://${host}/p/${id}`,
+      keepMinutes: KEEP_MINUTES,
+      swept
+    });
   } catch (err) {
     console.error('upload', err);
     const msg = String(err && err.message) === 'too large' ? 'too large' : 'failed';
