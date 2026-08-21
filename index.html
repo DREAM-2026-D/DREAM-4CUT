@@ -1676,6 +1676,19 @@ async function goShoot(reset){
   if(ok && state.shots.length < TOTAL) startTimer();
 }
 
+// 부스에서 한 팀이 끝나면 대기 화면으로 돌려놓는다.
+// 다음 팀이 "화면을 터치해서 촬영하세요" 를 보고 시작하게 하려는 것.
+function goIdle(){
+  stopTimer();
+  stopCamera();
+  resetShots();
+  $('#qrPanel').hidden = true;
+  qrNote('');
+  lastCanvas = null;
+  resultImg.removeAttribute('src');
+  show('start');
+}
+
 // 대기 화면은 아무 데나 눌러도 촬영이 시작된다 (설정·불러오기 버튼만 예외)
 $('#startScreen').addEventListener('click', e => {
   if(e.target.closest('#btnSettings1, #btnUpload')) return;
@@ -1712,7 +1725,7 @@ $('#btnFlip').addEventListener('click', async () => {
 });
 
 $('#btnBackPick').addEventListener('click', goFrame);
-$('#btnReshoot').addEventListener('click', () => goShoot(true));
+$('#btnReshoot').addEventListener('click', goIdle);
 
 $('#btnMake').addEventListener('click', async () => {
   show('result');
@@ -1720,7 +1733,7 @@ $('#btnMake').addEventListener('click', async () => {
 });
 
 $('#btnBackResult').addEventListener('click', goPick);
-$('#btnAgain').addEventListener('click', () => goShoot(true));
+$('#btnAgain').addEventListener('click', goIdle);
 $('#btnSave').addEventListener('click', saveImage);
 $('#btnPrint').addEventListener('click', () => window.print());
 
