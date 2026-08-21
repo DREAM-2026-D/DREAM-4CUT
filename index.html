@@ -689,8 +689,9 @@ const state = {
   mirror: true,
   sound: true,
   facing: 'user',
-  college: "common",  // 선택된 단과대
-  frame: "common-4cut",   // FRAMES 키
+  // 아래 두 값은 FALLBACK_ID 가 선언된 뒤 초기화된다 (선언 순서 때문)
+  college: null,      // 선택된 단과대
+  frame: null,        // FRAMES 키
   theme: 'jnu',
   layout: 'strip',
   caption: '',
@@ -1010,26 +1011,31 @@ const SLOTS = {
 const SLOT_OVERRIDE = {};   // 예) 'inmun-4cut': [ {x,y,w,h,r}, ... ]
 
 // ▼ 단과대 목록. name 은 버튼 아래 글자, id 는 파일 이름에 쓰인다.
-//   순서를 바꾸면 버튼 순서도 바뀐다.
+//   총학생회를 맨 앞에 두고 나머지는 가나다 순.
 const COLLEGES = [
-  { id: 'common',  name: '공통' },
-  { id: 'inmun',   name: '인문대' },
-  { id: 'sahoe',   name: '사회대' },
-  { id: 'jayeon',  name: '자연대' },
-  { id: 'gyeongsang', name: '경상대' },
-  { id: 'gongkwa', name: '공과대' },
-  { id: 'sabeom',  name: '사범대' },
-  { id: 'haeyang', name: '해양대' },
+  { id: 'chonghak',    name: '총학생회' },
+  { id: 'ganho',       name: '간호대' },
+  { id: 'gyeongsang',  name: '경상대' },
+  { id: 'gongkwa',     name: '공과대' },
+  { id: 'gyodae',      name: '교대' },
+  { id: 'sabeom',      name: '사범대' },
+  { id: 'sahoe',       name: '사회대' },
   { id: 'saengmyeong', name: '생명대' },
-  { id: 'uikwa',   name: '의과대' },
-  { id: 'ganho',   name: '간호대' },
-  { id: 'yakhak',  name: '약학대' },
-  { id: 'suui',    name: '수의대' },
-  { id: 'yedi',    name: '예디대' },
-  { id: 'gyoyuk',  name: '교육대' },
-  { id: 'jayu',    name: '자유전공' },
-  { id: 'daehak',  name: '대학원' }
+  { id: 'suui',        name: '수의대' },
+  { id: 'yakdae',      name: '약대' },
+  { id: 'yedi',        name: '예디대' },
+  { id: 'uikwa',       name: '의과대' },
+  { id: 'inmun',       name: '인문대' },
+  { id: 'jayeon',      name: '자연대' },
+  { id: 'jayu',        name: '자유전공' },
+  { id: 'haeyang',     name: '해양대' }
 ];
+
+// 아직 프레임 파일이 없는 단과대는 이 프레임으로 대신한다
+const FALLBACK_ID = 'chonghak';
+
+state.college = FALLBACK_ID;
+state.frame = FALLBACK_ID + '-4cut';
 
 const FRAMES = {};
 COLLEGES.forEach(c => {
@@ -1091,7 +1097,7 @@ async function loadFramePng(key){
     // 슬롯 위치가 같으므로 사진은 제자리에 들어간다.
     const type = key.split('-')[1] || '4cut';
     frameMissing[key] = true;
-    im = await loadImg(frameSrc('common-' + type));
+    im = await loadImg(frameSrc(FALLBACK_ID + '-' + type));
   }
 
   framePngCache[key] = im;
@@ -1460,7 +1466,7 @@ const frameMissing = {};
 
 function collegeFrameSrc(id, type){
   const key = id + '-' + type;
-  if(frameMissing[key]) return frameSrc('common-' + type);
+  if(frameMissing[key]) return frameSrc(FALLBACK_ID + '-' + type);
   return frameSrc(key);
 }
 
@@ -1481,7 +1487,7 @@ function setCollege(id){
       if(frameMissing[key]) return;      // 이미 대체한 뒤면 무한루프 방지
       frameMissing[key] = true;
       markMissing(id);
-      im.src = frameSrc('common-' + type);
+      im.src = frameSrc(FALLBACK_ID + '-' + type);
     };
     im.src = collegeFrameSrc(id, type);
   });
@@ -1821,7 +1827,7 @@ $(".frame-grid").addEventListener("click", e => {
   const card = e.target.closest("[data-type]");
   if(!card) return;
   const key = state.college + "-" + card.dataset.type;
-  setFrame(FRAMES[key] ? key : "common-" + card.dataset.type);
+  setFrame(FRAMES[key] ? key : FALLBACK_ID + '-' + card.dataset.type);
   goPick();
 });
 
