@@ -393,6 +393,7 @@
   /* 크기는 drawQr 가 기기 픽셀에 맞춰 직접 지정한다. 여기서 줄이면 QR 이 깨진다. */
   #qrCanvas{display:block;image-rendering:pixelated;}
   .qr-steps{margin:0 0 10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.8);}
+  .qr-multi{display:block;margin-top:8px;font-size:12.5px;color:var(--mint);}
   .qr-url{
     font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     font-size:13.5px;color:var(--mint);word-break:break-all;
@@ -559,7 +560,8 @@
       <div class="qr-box"><canvas id="qrCanvas"></canvas></div>
       <div class="qr-side">
         <p class="qr-title">휴대폰으로 가져가기</p>
-        <p class="qr-steps">카메라로 QR을 비추고<br>사진을 <b>꾹 눌러 저장</b></p>
+        <p class="qr-steps">카메라로 QR을 비추고<br>사진을 <b>꾹 눌러 저장</b><br>
+          <span class="qr-multi">같이 찍은 친구들도 <b>지금</b> 찍으세요</span></p>
         <div class="qr-url" id="qrUrl"></div>
       </div>
     </div>
@@ -603,7 +605,7 @@
     </p>
   </div>
   <div class="bottombar">
-    <button class="btn ghost sm" id="btnAgain">새로 찍기</button>
+    <button class="btn ghost sm" id="btnAgain">다 받았어요 · 새로 찍기</button>
     <button class="btn ghost sm" id="btnPrint">인쇄</button>
     <button class="btn" id="btnSave">사진 저장</button>
   </div>
@@ -1554,6 +1556,21 @@ function qrNote(msg){
 // 아이패드 사파리에는 폴더 접근 기능이 없어서 1번만 동작한다.
 let uploadMode = null;          // 'api' | 'local' | 'none'
 
+// 이번 팀이 올린 사진 id 들. [다시 찍기] 를 누를 때 서버에서 지운다.
+// (프레임을 바꾸면 다시 올라가므로 여러 개가 쌓일 수 있다)
+let sessionPhotoIds = [];
+
+function revokeSessionPhotos(){
+  if(uploadMode !== 'api' || !sessionPhotoIds.length) return;
+  const ids = sessionPhotoIds;
+  sessionPhotoIds = [];
+  // 응답을 기다리지 않는다 - 부스 화면은 바로 대기 상태로 돌아가야 한다
+  ids.forEach(id => {
+    fetch('api/revoke?id=' + encodeURIComponent(id), { method: 'POST', keepalive: true })
+      .catch(() => {});
+  });
+}
+
 async function uploadPhoto(blob){
   if(uploadMode !== 'local'){
     try{
@@ -1561,7 +1578,11 @@ async function uploadPhoto(blob){
                                             headers: { 'Content-Type': 'image/jpeg' } });
       if(r.ok){
         const j = await r.json();
-        if(j && j.url){ uploadMode = 'api'; return j.url; }
+        if(j && j.url){
+          uploadMode = 'api';
+          if(j.id) sessionPhotoIds.push(j.id);
+          return j.url;
+        }
       }
     }catch(e){ /* 로컬 부스면 이 경로가 없다 */ }
   }
@@ -1679,6 +1700,7 @@ async function goShoot(reset){
 // 부스에서 한 팀이 끝나면 대기 화면으로 돌려놓는다.
 // 다음 팀이 "화면을 터치해서 촬영하세요" 를 보고 시작하게 하려는 것.
 function goIdle(){
+  revokeSessionPhotos();   // 방금 팀의 사진을 서버에서 지운다
   stopTimer();
   stopCamera();
   resetShots();

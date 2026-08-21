@@ -20,24 +20,19 @@ function makeId() {
   return s;
 }
 
-// 만료된 사진과, 다 쓴 토큰 표시를 함께 정리한다.
-// used/ 표시는 사진보다 오래 남겨야 "이미 받아감" 안내를 띄울 수 있으므로 더 늦게 지운다.
+// 아무도 [다시 찍기] 를 안 눌렀을 때를 대비한 자동 정리.
+// 평상시에는 다음 팀이 시작할 때 api/revoke 가 즉시 지운다.
 async function sweepExpired() {
-  const photoCut = Date.now() - KEEP_MINUTES * 60 * 1000;
-  const usedCut = Date.now() - KEEP_MINUTES * 4 * 60 * 1000;
+  const cutoff = Date.now() - KEEP_MINUTES * 60 * 1000;
+  let cursor;
   const doomed = [];
-
-  for (const [prefix, cutoff] of [['cut/', photoCut], ['used/', usedCut]]) {
-    let cursor;
-    do {
-      const page = await list({ prefix, cursor, limit: 1000 });
-      for (const b of page.blobs) {
-        if (new Date(b.uploadedAt).getTime() < cutoff) doomed.push(b.url);
-      }
-      cursor = page.cursor;
-    } while (cursor);
-  }
-
+  do {
+    const page = await list({ prefix: "cut/", cursor, limit: 1000 });
+    for (const b of page.blobs) {
+      if (new Date(b.uploadedAt).getTime() < cutoff) doomed.push(b.url);
+    }
+    cursor = page.cursor;
+  } while (cursor);
   if (doomed.length) await del(doomed);
   return doomed.length;
 }
@@ -85,6 +80,8 @@ export default async function handler(req, res) {
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
+      id,
+
       url: `${proto}://${host}/p/${id}`,
       keepMinutes: KEEP_MINUTES,
       swept
