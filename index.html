@@ -390,8 +390,8 @@
   .qr-title{margin:0 0 6px;font-size:15px;font-weight:900;color:var(--mint);}
   .qr-status{max-width:520px;margin:14px auto 0;text-align:center;font-size:12.5px;color:var(--dim);line-height:1.7;}
   .qr-box{background:#fff;border-radius:12px;padding:10px;display:inline-block;}
-  /* 모듈 하나가 최소 6px 은 되어야 휴대폰이 잘 읽는다 */
-  #qrCanvas{display:block;width:min(64vw,300px);height:auto;image-rendering:pixelated;}
+  /* 크기는 drawQr 가 기기 픽셀에 맞춰 직접 지정한다. 여기서 줄이면 QR 이 깨진다. */
+  #qrCanvas{display:block;image-rendering:pixelated;}
   .qr-steps{margin:0 0 10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.8);}
   .qr-url{
     font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -1447,13 +1447,26 @@ async function openCompare(){
 }
 
 /* ═══════════ 휴대폰으로 받기 (업로드 + QR) ═══════════ */
+// 캔버스를 그린 뒤 CSS 로 줄이면 모듈이 통째로 누락되어 QR 이 깨진다.
+// (555px 캔버스를 300px 로 축소하면 nearest-neighbor 가 줄을 건너뛴다)
+// 그래서 화면에 보일 크기에 딱 맞춰 그리고, CSS 크기도 정확히 지정한다.
 function drawQr(text){
   const mat = qrMatrix(text);
   const n = mat.length;
-  const scale = Math.max(2, Math.floor(560 / n));   // 화면에서 다시 늘려도 또렷하게
   const cv = $('#qrCanvas');
-  cv.width = n * scale; cv.height = n * scale;
+
+  const dpr = window.devicePixelRatio || 1;
+  const target = Math.min(300, window.innerWidth * 0.64);   // 화면에 보일 CSS 크기
+  const scale = Math.max(2, Math.round(target * dpr / n));  // 모듈당 정수 픽셀
+
+  cv.width = n * scale;
+  cv.height = n * scale;
+  // 기기 픽셀과 1:1 로 맞춰 리샘플링이 일어나지 않게 한다
+  cv.style.width  = (n * scale / dpr) + 'px';
+  cv.style.height = (n * scale / dpr) + 'px';
+
   const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = '#000';
   for(let r = 0; r < n; r++){
@@ -1526,20 +1539,6 @@ function updateBoothChip(){
   if(!b) return;
   b.classList.toggle('on', !!photoDir);
   b.textContent = photoDir ? 'QR 준비됨' : 'QR 준비 (폴더 연결)';
-}
-
-function drawQr(text){
-  const mat = qrMatrix(text);
-  const n = mat.length;
-  const scale = Math.max(2, Math.floor(560 / n));
-  const cv = $('#qrCanvas');
-  cv.width = n * scale; cv.height = n * scale;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.fillStyle = '#000';
-  for(let r = 0; r < n; r++)
-    for(let c = 0; c < n; c++)
-      if(mat[r][c]) ctx.fillRect(c * scale, r * scale, scale, scale);
 }
 
 function qrNote(msg){
