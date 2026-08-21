@@ -252,17 +252,27 @@
     return v;
   }
 
+  // Format info placement. m is indexed [row][col].
+  //
+  // Getting this transposed still round-trips through a matching decoder, but
+  // every real scanner rejects the code because it cannot read the mask or the
+  // error-correction level. Verified against a reference QR: reading a known
+  // good code with this mapping yields a valid BCH codeword, the transpose does
+  // not.
   function placeFormat(m, size, mask) {
     var f = formatBits(mask), i;
-    // bit 0 is the LSB; the spec places bit 14 first around the top-left
-    for (i = 0; i <= 5; i++) m[8][i] = (f >> i) & 1;
-    m[8][7] = (f >> 6) & 1;
-    m[8][8] = (f >> 7) & 1;
-    m[7][8] = (f >> 8) & 1;
-    for (i = 9; i <= 14; i++) m[14 - i][8] = (f >> i) & 1;
 
-    for (i = 0; i <= 7; i++) m[size - 1 - i][8] = (f >> i) & 1;
-    for (i = 8; i <= 14; i++) m[8][size - 15 + i] = (f >> i) & 1;
+    // copy 1 - around the top-left finder
+    for (i = 0; i <= 5; i++) m[i][8] = (f >> i) & 1;   // rows 0-5, column 8
+    m[7][8] = (f >> 6) & 1;
+    m[8][8] = (f >> 7) & 1;
+    m[8][7] = (f >> 8) & 1;
+    for (i = 9; i <= 14; i++) m[8][14 - i] = (f >> i) & 1;  // row 8, columns 5-0
+
+    // copy 2 - split between top-right and bottom-left
+    for (i = 0; i <= 7; i++) m[8][size - 1 - i] = (f >> i) & 1;
+    for (i = 8; i <= 14; i++) m[size - 15 + i][8] = (f >> i) & 1;
+
     m[size - 8][8] = 1;                           // dark module
   }
 
