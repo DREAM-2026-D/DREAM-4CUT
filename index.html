@@ -437,14 +437,7 @@
   .qr-box{background:#fff;border-radius:12px;padding:10px;display:inline-block;}
   /* 크기는 drawQr 가 기기 픽셀에 맞춰 직접 지정한다. 여기서 줄이면 QR 이 깨진다. */
   #qrCanvas{display:block;image-rendering:pixelated;}
-  .qr-steps{margin:0 0 10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.8);}
-  .qr-multi{display:block;margin-top:8px;font-size:12.5px;color:var(--mint);}
-  .qr-url{
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    font-size:13.5px;color:var(--mint);word-break:break-all;
-    background:rgba(18,227,166,.10);border:1px solid rgba(18,227,166,.30);
-    border-radius:10px;padding:10px 12px;
-  }
+  .qr-steps{margin:0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.8);}
   .qr-note{margin:12px 0 0;font-size:12px;color:var(--dim);line-height:1.7;}
 
   /* ---------- 세로 화면(아이패드 키오스크) ----------
@@ -460,14 +453,9 @@
     }
     .stage{padding:0 10px;}
 
-    /* 결과: 사진과 QR 을 나란히 놓아 스크롤 없이 한 화면에 */
-    .result-row{
-      display:flex;align-items:flex-start;justify-content:center;
-      gap:clamp(16px,3vw,36px);max-width:none;
-    }
-    #resultImg{margin:0;max-height:none;max-width:44vw;}
-    .qr-panel{margin:0;flex-direction:column;max-width:42vw;}
-    .qr-side{text-align:center;min-width:0;}
+    /* 결과: 사진 아래에 QR. 둘 다 스크롤 없이 들어가도록 높이를 나눠 쓴다 */
+    #resultImg{max-height:52vh;}
+    .qr-panel{margin:14px auto 0;}
 
     /* 프레임 카드를 더 크게 */
     .frame-card{flex:0 1 320px;}
@@ -630,9 +618,7 @@
       <div class="qr-box"><canvas id="qrCanvas"></canvas></div>
       <div class="qr-side">
         <p class="qr-title">휴대폰으로 가져가기</p>
-        <p class="qr-steps">카메라로 QR을 비추고<br>사진을 <b>꾹 눌러 저장</b><br>
-          <span class="qr-multi">같이 찍은 친구들도 <b>지금</b> 찍으세요</span></p>
-        <div class="qr-url" id="qrUrl"></div>
+        <p class="qr-steps">카메라로 QR을 비추고<br>사진을 <b>꾹 눌러 저장</b><br></p>
       </div>
     </div>
     </div>
@@ -1635,7 +1621,9 @@ function drawQr(text){
   const cv = $('#qrCanvas');
 
   const dpr = window.devicePixelRatio || 1;
-  const target = Math.min(300, window.innerWidth * 0.64);   // 화면에 보일 CSS 크기
+  // 사진 아래에 들어가므로 너무 크면 화면을 넘긴다.
+  // 세로 길이의 1/5 안쪽으로 잡되, 모듈이 작아지지 않게 하한을 둔다.
+  const target = Math.max(180, Math.min(230, window.innerHeight * 0.2, window.innerWidth * 0.6));
   const scale = Math.max(2, Math.round(target * dpr / n));  // 모듈당 정수 픽셀
 
   cv.width = n * scale;
@@ -1807,7 +1795,6 @@ async function showQrForResult(){
     }
 
     drawQr(url);
-    $('#qrUrl').textContent = url.replace(/^https?:\/\//, '');
     $('#qrPanel').hidden = false;
   }catch(err){
     console.error('qr', err);
