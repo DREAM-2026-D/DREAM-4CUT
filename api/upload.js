@@ -12,6 +12,12 @@ const MAX_BYTES = 4 * 1024 * 1024;   // Vercel 함수 본문 한도가 4.5MB
 const ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';   // 헷갈리는 l,o,0,1 제외
 const ID_LEN = 8;
 
+// QR 주소는 요청이 들어온 주소가 아니라 항상 이 주소로 만든다.
+// 부스가 미리보기(preview) 배포 주소로 열려 있으면 그 주소에는 Vercel 로그인이
+// 걸려 있어서, 요청 host 를 그대로 쓰면 QR 을 찍은 사람이 로그인 화면을 본다.
+// 사진 찍는 사람에게 Vercel 계정이 있을 리 없으니 무조건 프로덕션으로 보낸다.
+const PUBLIC_HOST = 'dream-4-cut.vercel.app';
+
 function makeId() {
   let s = '';
   for (let i = 0; i < ID_LEN; i++) {
@@ -75,8 +81,11 @@ export default async function handler(req, res) {
       cacheControlMaxAge: KEEP_MINUTES * 60
     });
 
-    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    // 로컬에서 열어볼 때만 현재 주소를 쓴다
+    const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+    const local = /^(localhost|127\.0\.0\.1|\[?::1\]?|192\.168\.|10\.)/.test(rawHost);
+    const host = local ? rawHost : PUBLIC_HOST;
+    const proto = local ? (req.headers['x-forwarded-proto'] || 'http').split(',')[0] : 'https';
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
